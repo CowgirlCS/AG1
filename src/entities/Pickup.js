@@ -1,11 +1,12 @@
 // Weapons and items lying in the level, or dropped by enemies.
-// kind: 'coin' | 'potion' | 'heart' | 'weapon'
+// kind: 'coin' | 'gem' | 'potion' | 'heart' | 'weapon' | 'rune'
+const PICKUP_TEXTURES = { coin: 'coin1', gem: 'gem', potion: 'potion', heart: 'heart_container' };
+
 class Pickup extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y, kind, opts = {}) {
     const texture = kind === 'weapon' ? 'w_' + opts.weapon
-      : kind === 'coin' ? 'coin1'
-      : kind === 'heart' ? 'heart_container'
-      : 'potion';
+      : kind === 'rune' ? 'rune_' + opts.rune
+      : PICKUP_TEXTURES[kind];
     super(scene, x, y, texture);
     scene.add.existing(this);
     scene.physics.add.existing(this);
@@ -13,8 +14,10 @@ class Pickup extends Phaser.Physics.Arcade.Sprite {
 
     this.kind = kind;
     this.weapon = opts.weapon;
+    this.rune = opts.rune;
     this.setDepth(4);
     if (kind === 'coin') this.play('coin_spin');
+    if (kind === 'rune') Shaders.glow(this, RUNES[opts.rune].color, 4);
 
     if (opts.dropped) {
       // Pops out of a defeated enemy, falls, and fades away after a while.

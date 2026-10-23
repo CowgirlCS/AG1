@@ -348,11 +348,6 @@ const SPRITES = {
     'WNNNNNNNEE',
     'W.......E.',
   ],
-  arrow_enemy: [
-    'R.......e.',
-    'RccccccceR',
-    'R.......e.',
-  ],
   fireball: [
     '..OOOO..',
     '.OYYYYO.',
@@ -446,11 +441,13 @@ const FONT_GLYPHS = {
   '<': [0x08, 0x14, 0x22, 0x41, 0x00], '>': [0x00, 0x41, 0x22, 0x14, 0x08],
 };
 
-// Background colours per theme (0 meadow, 1 cave, 2 castle).
+// Background colours per theme (0 meadow, 1 cave, 2 castle, 3 volcano, 4 sky vault).
 const THEMES = [
   { skyTop: '#4aa8f0', skyBottom: '#c4ecff', far: '#8aa8d8', near: '#4f9a55', nearShade: '#3d7d45' },
   { skyTop: '#0e0a18', skyBottom: '#2a1f40', far: '#2a2142', near: '#3a2d5a', nearShade: '#2a2044' },
   { skyTop: '#1e1438', skyBottom: '#c8587a', far: '#46305e', near: '#24183a', nearShade: '#ffcd3a' },
+  { skyTop: '#12060a', skyBottom: '#7a2210', far: '#3a1a1c', near: '#22100e', nearShade: '#ff6a00' },
+  { skyTop: '#ffc85a', skyBottom: '#fff4d6', far: '#fff0c8', near: '#ffe2a0', nearShade: '#ffffff' },
 ];
 
 // Small deterministic random generator so the art looks the same every run.
@@ -467,7 +464,13 @@ class BootScene extends Phaser.Scene {
   constructor() { super('BootScene'); }
 
   create() {
+    Object.assign(PAL, EXTRA_PAL);
     Object.keys(SPRITES).forEach(key => this.makePixelTexture(key, SPRITES[key]));
+    Object.keys(EXTRA_SPRITES).forEach(key => this.makePixelTexture(key, EXTRA_SPRITES[key]));
+    Object.keys(SHAPES).forEach(key => this.makeShapeTexture(key, SHAPES[key]));
+    RUNE_ORDER.forEach(r => this.makePixelTexture('rune_' + r, TEMPLATE_SPRITES.rune, Object.assign({}, PAL, { '*': RUNES[r].glyph })));
+    ARMOR_ORDER.forEach(a => this.makePixelTexture('armor_' + a, TEMPLATE_SPRITES.armor,
+      Object.assign({}, PAL, { '*': ARMORS[a].colors[0], '+': ARMORS[a].colors[1] })));
     this.makeRect('px', 2, 2, '#ffffff');
     const moon = this.textures.createCanvas('moon', 29, 29);
     const mctx = moon.getContext();
@@ -478,22 +481,25 @@ class BootScene extends Phaser.Scene {
     THEMES.forEach((t, i) => this.makeBackground(i, t));
     this.makeFont();
     this.makeAnims();
+    Shaders.register(this.game);
     this.scene.start('MenuScene');
   }
 
   makePixelTexture(key, rows, palette = PAL) {
-    const w = Math.max(...rows.map(r => r.length));
-    const h = rows.length;
+    drawPixelTexture(this.textures, key, rows, palette);
+  }
+
+  makeShapeTexture(key, { w, h, fn }) {
     const tex = this.textures.createCanvas(key, w, h);
     const ctx = tex.getContext();
-    rows.forEach((row, y) => {
-      for (let x = 0; x < row.length; x++) {
-        const c = palette[row[x]];
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const c = PAL[fn(x, y)];
         if (!c) continue;
         ctx.fillStyle = c;
         ctx.fillRect(x, y, 1, 1);
       }
-    });
+    }
     tex.refresh();
   }
 
@@ -507,7 +513,7 @@ class BootScene extends Phaser.Scene {
 
   // Tileset: 3 tiles per theme -> [surface, fill, platform].
   makeTileset() {
-    const count = 9;
+    const count = 15;
     const tex = this.textures.createCanvas('tiles', 16 * count, 16);
     const ctx = tex.getContext();
     const rnd = seededRandom(42);
@@ -572,8 +578,43 @@ class BootScene extends Phaser.Scene {
     ox = 128;
     bricks(ox, '#9a4a3a', '#5a2a22', '#b8604c');
 
+    // Theme 3: volcano
+    ox = 144;
+    fill(ox, '#2e2226'); speckle(ox, ['#3e2e30', '#22181c', '#ff6a00'], 24, 4);
+    ctx.fillStyle = '#ff6a00'; ctx.fillRect(ox, 0, 16, 2);
+    ctx.fillStyle = '#4a3234'; ctx.fillRect(ox, 2, 16, 2);
+    for (let x = 0; x < 16; x++) if (rnd() < 0.35) px(ox, x, 0, '#ffcd3a');
+    ox = 160;
+    fill(ox, '#2e2226'); speckle(ox, ['#3e2e30', '#22181c'], 30);
+    px(ox, 4, 6, '#ff6a00'); px(ox, 5, 7, '#ff6a00'); px(ox, 5, 8, '#ff6a00'); px(ox, 11, 12, '#ff6a00'); px(ox, 12, 11, '#ff6a00');
+    ox = 176;
+    fill(ox, '#1a1424');
+    ctx.fillStyle = '#4a3a6a'; ctx.fillRect(ox, 0, 16, 2);
+    ctx.fillStyle = '#0e0a14'; ctx.fillRect(ox, 14, 16, 2);
+    px(ox, 3, 4, '#6a5a8a'); px(ox, 4, 5, '#6a5a8a'); px(ox, 10, 8, '#6a5a8a'); px(ox, 11, 9, '#6a5a8a');
+
+    // Theme 4: sky vault
+    ox = 192;
+    fill(ox, '#ffe2a0'); speckle(ox, ['#f2d27a', '#fff0c8'], 26, 5);
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(ox, 0, 16, 4);
+    for (let x = 0; x < 16; x++) if (rnd() < 0.5) px(ox, x, 4, '#ffffff');
+    ox = 208;
+    fill(ox, '#ffe2a0'); speckle(ox, ['#f2d27a', '#fff0c8', '#e8c070'], 30);
+    ox = 224;
+    bricks(ox, '#f2c040', '#c28a1e', '#ffe080');
+
     tex.refresh();
     for (let i = 0; i < count; i++) tex.add(i, 0, i * 16, 0, 16, 16);
+
+    // Fake walls (secret passages): the same tiles with faint cracks.
+    const fake = this.textures.createCanvas('tiles_fake', 16 * count, 16);
+    const fctx = fake.getContext();
+    fctx.drawImage(tex.getSourceImage(), 0, 0);
+    fctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+    const crack = [[3, 5], [4, 6], [5, 6], [6, 7], [6, 8], [7, 9], [8, 9], [9, 10], [10, 4], [11, 5], [11, 6], [12, 11], [11, 12], [4, 12], [5, 13]];
+    for (let i = 0; i < count; i++) crack.forEach(([x, y]) => fctx.fillRect(i * 16 + x, y, 1, 1));
+    fake.refresh();
+    for (let i = 0; i < count; i++) fake.add(i, 0, i * 16, 0, 16, 16);
   }
 
   makeBackground(index, t) {
@@ -641,6 +682,44 @@ class BootScene extends Phaser.Scene {
         ctx.fillStyle = '#4dd2ff';
         ctx.fillRect(x, y, 1, 1);
       }
+    } else if (index === 3) {
+      // volcanoes with glowing craters, embers in the air
+      const rnd = seededRandom(13);
+      for (let i = 0; i < 40; i++) {
+        ctx.fillStyle = i % 3 ? '#ff6a00' : '#ffcd3a';
+        ctx.fillRect(Math.floor(rnd() * W), Math.floor(rnd() * 170), 1, 1);
+      }
+      for (let x = 0; x < W; x++) {
+        let top = Math.round(170 + wave(x, [[14, 2, 0.4], [6, 7, 1.1]]));
+        [[64, 70], [192, 95]].forEach(([cx, peak]) => { top = Math.min(top, Math.round(peak + Math.abs(x - cx) * 1.3)); });
+        ctx.fillStyle = t.far;
+        ctx.fillRect(x, top, 1, H - top);
+        if ((Math.abs(x - 64) < 6 && top < 78) || (Math.abs(x - 192) < 6 && top < 103)) {
+          ctx.fillStyle = '#ff6a00';
+          ctx.fillRect(x, top, 1, 3);
+        }
+        const ntop = Math.round(212 + wave(x, [[8, 4, 2.0], [6, 13, 0.4], [3, 32, 1.0]]));
+        nctx.fillStyle = t.near;
+        nctx.fillRect(x, ntop, 1, H - ntop);
+      }
+      nctx.fillStyle = t.nearShade;
+      for (let x = 14; x < W; x += 41) nctx.fillRect(x, 238 + (x % 3) * 6, 6, 1);
+    } else if (index === 4) {
+      // drifting golden clouds
+      const cloud = (c, cx, cy, w, col) => {
+        c.fillStyle = col;
+        c.fillRect(cx, cy, w, 8);
+        c.fillRect(cx + 4, cy - 5, w - 10, 5);
+        c.fillRect(cx + 9, cy - 9, w - 20, 4);
+      };
+      [[10, 60, 40], [90, 90, 54], [170, 50, 46], [220, 120, 30]].forEach(([cx, cy, w]) => cloud(ctx, cx, cy, w, t.far));
+      for (let x = 0; x < W; x++) {
+        const ntop = Math.round(205 + wave(x, [[8, 4, 0.7], [5, 9, 1.9]]));
+        nctx.fillStyle = t.near;
+        nctx.fillRect(x, ntop, 1, H - ntop);
+        nctx.fillStyle = t.nearShade;
+        nctx.fillRect(x, ntop, 1, 2);
+      }
     } else {
       for (let x = 0; x < W; x++) {
         const top = Math.round(190 + wave(x, [[10, 2, 0.8], [4, 5, 0.1]]));
@@ -707,7 +786,64 @@ class BootScene extends Phaser.Scene {
       frameRate: 8,
       repeat: -1,
     });
+    this.anims.create({ key: 'crab_walk', frames: [{ key: 'crab1' }, { key: 'crab2' }], frameRate: 8, repeat: -1 });
+    this.anims.create({ key: 'ninja_run', frames: [{ key: 'ninja1' }, { key: 'ninja2' }], frameRate: 10, repeat: -1 });
+    this.anims.create({ key: 'crab_boss_walk', frames: [{ key: 'crab_boss1' }, { key: 'crab_boss2' }], frameRate: 6, repeat: -1 });
+    this.anims.create({ key: 'dragon_fly', frames: [{ key: 'dragon1' }, { key: 'dragon2' }], frameRate: 4, repeat: -1 });
+    this.anims.create({
+      key: 'portal_spin',
+      frames: [{ key: 'portal1' }, { key: 'portal2' }, { key: 'portal3' }, { key: 'portal4' }],
+      frameRate: 8,
+      repeat: -1,
+    });
+    ensurePlayerTextures(this, 'classic', null);
   }
+}
+
+function drawPixelTexture(textures, key, rows, palette = PAL) {
+  const w = Math.max(...rows.map(r => r.length));
+  const h = rows.length;
+  const tex = textures.createCanvas(key, w, h);
+  const ctx = tex.getContext();
+  rows.forEach((row, y) => {
+    for (let x = 0; x < row.length; x++) {
+      const c = palette[row[x]];
+      if (!c) continue;
+      ctx.fillStyle = c;
+      ctx.fillRect(x, y, 1, 1);
+    }
+  });
+  tex.refresh();
+}
+
+// Player textures for a skin + armor combination, made the first time they
+// are needed. Returns the key prefix: prefix + '_idle', '_run' (anim), etc.
+// Armor recolours the tunic and turns the top of the hair into a helmet.
+const PLAYER_FRAMES = ['idle', 'run1', 'run2', 'jump', 'attack', 'crouch', 'dash'];
+
+function ensurePlayerTextures(scene, skinKey, armorKey) {
+  const skin = SKINS[skinKey] ? skinKey : 'classic';
+  const armor = ARMORS[armorKey] ? armorKey : null;
+  const prefix = `pl_${skin}_${armor || 'none'}`;
+  if (scene.textures.exists(prefix + '_idle')) return prefix;
+
+  const pal = Object.assign({}, PAL, SKINS[skin].colors);
+  if (armor) {
+    pal.A = ARMORS[armor].colors[0];
+    pal.B = ARMORS[armor].colors[0];
+    pal.b = ARMORS[armor].colors[1];
+  }
+  PLAYER_FRAMES.forEach(f => {
+    let rows = SPRITES['player_' + f] || EXTRA_SPRITES['player_' + f];
+    if (armor) {
+      // The first two rows with hair become the helmet.
+      let left = 2;
+      rows = rows.map(r => (left > 0 && r.includes('H') && left--) ? r.replace(/H/g, 'A') : r);
+    }
+    drawPixelTexture(scene.textures, prefix + '_' + f, rows, pal);
+  });
+  scene.anims.create({ key: prefix + '_run', frames: [{ key: prefix + '_run1' }, { key: prefix + '_run2' }], frameRate: 10, repeat: -1 });
+  return prefix;
 }
 
 // Shared helper for crisp pixel text (font is uppercase only).
