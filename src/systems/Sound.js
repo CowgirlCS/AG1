@@ -82,6 +82,22 @@ const Sfx = {
       case 'select':     this.tone(660, null, 0.05, 'square', 0.18); break;
       case 'confirm':    this.notes([660, 990], 0.06, 'square', 0.2); break;
       case 'pause':      this.notes([520, 390], 0.06, 'triangle', 0.25); break;
+      case 'doubleJump': this.tone(420, 900, 0.12, 'square', 0.15); break;
+      case 'dash':       this.noise(0.14, 0.3, 1800, 'bandpass'); this.tone(500, 180, 0.12, 'sawtooth', 0.1); break;
+      case 'bounce':     this.tone(260, 520, 0.09, 'triangle', 0.25); break;
+      case 'throw':      this.noise(0.09, 0.25, 3000, 'bandpass'); break;
+      case 'explosion':  this.noise(0.5, 0.5, 600); this.tone(120, 40, 0.4, 'sawtooth', 0.3); break;
+      case 'armor':      this.tone(900, 600, 0.08, 'triangle', 0.25); this.noise(0.05, 0.2, 5000, 'highpass'); break;
+      case 'gem':        this.tone(1568, null, 0.06, 'triangle', 0.22); this.tone(2093, null, 0.12, 'triangle', 0.22, 0.06); break;
+      case 'rune':       this.notes([523, 784, 1047, 1568, 2093], 0.09, 'triangle', 0.28); break;
+      case 'secret':     this.notes([392, 494, 587, 784], 0.07, 'square', 0.16); break;
+      case 'power':      this.notes([262, 392, 523, 784], 0.05, 'sawtooth', 0.16); this.noise(0.3, 0.2, 1200); break;
+      case 'portal':     this.notes([262, 330, 392, 523, 659, 784, 1047], 0.06, 'triangle', 0.25); break;
+      case 'slam':       this.noise(0.35, 0.5, 400); this.tone(90, 40, 0.35, 'square', 0.3); break;
+      case 'bossRoar':   this.tone(110, 55, 0.8, 'sawtooth', 0.35); this.noise(0.6, 0.3, 400); break;
+      case 'bossDie':    this.notes([392, 330, 262, 196, 131], 0.14, 'sawtooth', 0.25); this.noise(1.0, 0.4, 500); break;
+      case 'buy':        this.notes([784, 1047, 1319], 0.06, 'square', 0.2); break;
+      case 'error':      this.tone(160, 110, 0.15, 'square', 0.2); break;
     }
   },
 };
